@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: sentinelgrid
+  profiles:
+    active: local
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non-null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: SentinelGrid
+    version: 1.0.0
+    description: Distributed Social Interaction Engine
+
+sentinelgrid:
+  redis:
+    bot-cap: 100
+    cooldown-ttl-minutes: 10
+    notification-cooldown-minutes: 15
+  scheduler:
+    notification-sweeper-cron: "0 */5 * * * *"
+  security:
+    max-payload-bytes: 10240

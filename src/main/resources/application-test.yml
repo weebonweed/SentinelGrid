@@ -1,0 +1,20 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+sentinelgrid:
+  redis:
+    bot-cap: 100
+    cooldown-ttl-minutes: 10
+    notification-cooldown-minutes: 15
+  scheduler:
+    notification-sweeper-cron: "0 */5 * * * *"
+
+logging:
+  level:
+    com.sentinelgrid: DEBUG
