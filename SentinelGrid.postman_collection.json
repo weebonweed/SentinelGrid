@@ -1,0 +1,397 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-sentinelgrid-v1",
+    "name": "SentinelGrid API",
+    "description": "Complete API collection for SentinelGrid — Distributed Social Interaction Engine.\n\nBefore running requests:\n1. Set `baseUrl` variable (default: http://localhost:8080)\n2. Seed a User and Bot record directly in PostgreSQL, then set `humanAuthorId` and `botAuthorId` variables.\n3. Run `Create Post` first to get a valid `postId`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",       "value": "http://localhost:8080", "type": "string" },
+    { "key": "postId",        "value": "",                      "type": "string" },
+    { "key": "commentId",     "value": "",                      "type": "string" },
+    { "key": "humanAuthorId", "value": "",                      "type": "string" },
+    { "key": "botAuthorId",   "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Post — Human Author",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('success is true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data.id exists', () => pm.expect(pm.response.json().data.id).to.be.a('string'));",
+                  "const id = pm.response.json().data.id;",
+                  "pm.collectionVariables.set('postId', id);",
+                  "console.log('postId set to:', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "postman-create-post-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\",\n  \"content\": \"This is a test post created via Postman. SentinelGrid is live.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/posts", "host": ["{{baseUrl}}"], "path": ["api", "posts"] }
+          }
+        },
+        {
+          "name": "Create Post — Bot Author",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('authorType is BOT', () => pm.expect(pm.response.json().data.authorType).to.equal('BOT'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "postman-create-bot-post-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{botAuthorId}}\",\n  \"authorType\": \"BOT\",\n  \"content\": \"Automated bot-generated post content.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/posts", "host": ["{{baseUrl}}"], "path": ["api", "posts"] }
+          }
+        },
+        {
+          "name": "Create Post — Validation Failure (blank content)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('fieldErrors.content exists', () => pm.expect(pm.response.json().fieldErrors.content).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\",\n  \"content\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/posts", "host": ["{{baseUrl}}"], "path": ["api", "posts"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment — Human Author (root)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('depthLevel is 0', () => pm.expect(pm.response.json().data.depthLevel).to.equal(0));",
+                  "const id = pm.response.json().data.id;",
+                  "pm.collectionVariables.set('commentId', id);",
+                  "console.log('commentId set to:', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "postman-comment-human-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\",\n  \"content\": \"This is a top-level human comment.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Create Comment — Human Author (reply to comment)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('depthLevel is 1', () => pm.expect(pm.response.json().data.depthLevel).to.equal(1));",
+                  "pm.test('parentCommentId is set', () => pm.expect(pm.response.json().data.parentCommentId).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "postman-comment-reply-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parentCommentId\": \"{{commentId}}\",\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\",\n  \"content\": \"Nested reply to the first comment.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Create Comment — Bot Author (valid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 429', () => {",
+                  "  pm.expect([201, 429]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "postman-comment-bot-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{botAuthorId}}\",\n  \"authorType\": \"BOT\",\n  \"content\": \"Bot-generated comment for engagement simulation.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Create Comment — Validation Failure (missing authorType)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('fieldErrors.authorType exists', () => pm.expect(pm.response.json().fieldErrors.authorType).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"content\": \"Missing authorType field\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Create Comment — Post Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('correlationId present', () => pm.expect(pm.response.json().correlationId).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\",\n  \"content\": \"This post does not exist\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/00000000-0000-0000-0000-000000000000/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "00000000-0000-0000-0000-000000000000", "comments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Likes",
+      "item": [
+        {
+          "name": "Like Post — Human Author",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('likeId is present', () => pm.expect(pm.response.json().data.likeId).to.be.a('string'));",
+                  "pm.test('authorType is HUMAN', () => pm.expect(pm.response.json().data.authorType).to.equal('HUMAN'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "postman-like-human-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "like"]
+            }
+          }
+        },
+        {
+          "name": "Like Post — Duplicate Like (409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', () => pm.response.to.have.status(409));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{humanAuthorId}}\",\n  \"authorType\": \"HUMAN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "like"]
+            }
+          }
+        },
+        {
+          "name": "Like Post — Validation Failure (missing authorId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('fieldErrors.authorId exists', () => pm.expect(pm.response.json().fieldErrors.authorId).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorType\": \"HUMAN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/{{postId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "posts", "{{postId}}", "like"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Observability",
+      "item": [
+        {
+          "name": "Actuator Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status is UP', () => pm.expect(pm.response.json().status).to.equal('UP'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator", "health"] }
+          }
+        },
+        {
+          "name": "Actuator Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/info", "host": ["{{baseUrl}}"], "path": ["actuator", "info"] }
+          }
+        }
+      ]
+    }
+  ]
+}
